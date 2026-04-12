@@ -1,0 +1,9 @@
+[build]
+  base = "btc-sovereign-app"
+  command = "npm install && npm run build"
+  publish = "btc-sovereign-app/dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
