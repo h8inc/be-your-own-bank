@@ -2,7 +2,7 @@ import React from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { c, f } from "../../../lib/theme";
 import { fmtCompact, fmtUsdCompact, fmtPct } from "../../../lib/formatters";
-import { Card, Label, Row, Expandable } from "../../../components/ui";
+import { Card, Expandable } from "../../../components/ui";
 import type { usePlannerData } from "../../../hooks/usePlannerData";
 
 interface Props {
@@ -19,8 +19,19 @@ const chartTooltipStyle = {
   fontFamily: f.mono,
 };
 
-export const OverviewTab: React.FC<Props> = ({ vaultBal, horizon, data }) => {
-  const { corridorChartData, currentValueEur, p50End, p10End, p90End, horizonTable, mc } = data;
+export const OverviewTab: React.FC<Props> = ({ horizon, data }) => {
+  const {
+    corridorChartData,
+    currentPortfolioValueEur,
+    btcP50End, btcP10End, btcP90End,
+    mcPortfolioChartData,
+    mcBtc,
+    horizonTable,
+  } = data;
+
+  // Use portfolio MC for the headline if we have multi-asset data
+  const hasPortfolioChart = mcPortfolioChartData.length > 0;
+  const chartData = hasPortfolioChart ? mcPortfolioChartData : corridorChartData;
 
   return (
     <>
@@ -29,13 +40,13 @@ export const OverviewTab: React.FC<Props> = ({ vaultBal, horizon, data }) => {
         <div style={{ paddingLeft: 8, marginBottom: 4 }}>
           <div style={{ fontSize: 11, color: c.mute, marginBottom: 2 }}>Where your portfolio might be</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 22, fontWeight: 300, color: c.accent, fontFamily: f.mono }}>{fmtCompact(p50End)}</span>
+            <span style={{ fontSize: 22, fontWeight: 300, color: c.accent, fontFamily: f.mono }}>{fmtUsdCompact(btcP50End)}</span>
             <span style={{ fontSize: 11, color: c.mute }}>median in {horizon} years</span>
           </div>
         </div>
         <div style={{ width: "100%", height: 180, minWidth: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={corridorChartData} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="overviewGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={c.accent} stopOpacity={0.25} />
@@ -47,8 +58,8 @@ export const OverviewTab: React.FC<Props> = ({ vaultBal, horizon, data }) => {
                 </linearGradient>
               </defs>
               <XAxis dataKey="year" tick={{ fontSize: 9, fill: c.mute }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 9, fill: c.mute }} tickFormatter={(v: number) => fmtCompact(v)} tickLine={false} axisLine={false} width={48} />
-              <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => fmtCompact(v)} labelStyle={{ color: c.sub, fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 9, fill: c.mute }} tickFormatter={(v) => fmtCompact(v as number)} tickLine={false} axisLine={false} width={48} />
+              <Tooltip contentStyle={chartTooltipStyle} formatter={(v) => fmtCompact(v as number)} labelStyle={{ color: c.sub, fontSize: 10 }} />
               <Area type="monotone" dataKey="p90" stroke="transparent" fill="url(#overviewBand)" strokeWidth={0} dot={false} />
               <Area type="monotone" dataKey="p50" stroke={c.accent} fill="url(#overviewGrad)" strokeWidth={2} dot={false} name="Median" />
               <Area type="monotone" dataKey="p10" stroke={c.negative + "44"} fill="transparent" strokeWidth={1} strokeDasharray="4 4" dot={false} name="Conservative" />
@@ -73,9 +84,9 @@ export const OverviewTab: React.FC<Props> = ({ vaultBal, horizon, data }) => {
       {/* Three range outcomes */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
         {[
-          { label: "Conservative", value: fmtCompact(p10End), col: c.sub },
-          { label: "Median", value: fmtCompact(p50End), col: c.accent },
-          { label: "Optimistic", value: fmtCompact(p90End), col: c.positive },
+          { label: "Conservative", value: fmtUsdCompact(btcP10End), col: c.sub },
+          { label: "Median", value: fmtUsdCompact(btcP50End), col: c.accent },
+          { label: "Optimistic", value: fmtUsdCompact(btcP90End), col: c.positive },
         ].map(({ label, value, col }) => (
           <Card key={label} s={{ padding: 12, textAlign: "center" as const }}>
             <div style={{ fontSize: 9, color: c.mute, marginBottom: 4, letterSpacing: "0.05em", textTransform: "uppercase" as const }}>{label}</div>
@@ -88,14 +99,14 @@ export const OverviewTab: React.FC<Props> = ({ vaultBal, horizon, data }) => {
       <Card s={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <div>
-            <div style={{ fontSize: 10, color: c.mute, marginBottom: 4 }}>You hold</div>
+            <div style={{ fontSize: 10, color: c.mute, marginBottom: 4 }}>Portfolio value</div>
             <div style={{ fontSize: 20, fontWeight: 400, color: c.text, fontFamily: f.mono }}>
-              {vaultBal.toFixed(4)} <span style={{ fontSize: 13, color: c.accent }}>BTC</span>
+              {fmtCompact(currentPortfolioValueEur)}
             </div>
           </div>
           <div style={{ textAlign: "right" as const }}>
-            <div style={{ fontSize: 10, color: c.mute, marginBottom: 4 }}>Worth today</div>
-            <div style={{ fontSize: 16, fontWeight: 500, color: c.sub, fontFamily: f.mono }}>{fmtCompact(currentValueEur)}</div>
+            <div style={{ fontSize: 10, color: c.mute, marginBottom: 4 }}>Today</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: c.sub, fontFamily: f.mono }}>EUR</div>
           </div>
         </div>
       </Card>
@@ -103,15 +114,15 @@ export const OverviewTab: React.FC<Props> = ({ vaultBal, horizon, data }) => {
       {/* Insight card — humble, no crystal ball */}
       <Card glow={c.accentSoft} s={{ marginBottom: 12 }}>
         <div style={{ fontSize: 12, color: c.text, lineHeight: 1.6, fontFamily: f.sans }}>
-          Based on historical power-law models, your BTC <em>could</em> be worth around{" "}
-          <span style={{ color: c.accent, fontWeight: 600 }}>{fmtCompact(p50End)}</span> in {horizon} years.
+          Based on historical models, your portfolio <em>could</em> be worth around{" "}
+          <span style={{ color: c.accent, fontWeight: 600 }}>{fmtUsdCompact(btcP50End)}</span> in {horizon} years.
           That's the median — half of simulated outcomes land above, half below.{" "}
           <span style={{ color: c.mute }}>Nobody knows the future.</span>
         </div>
       </Card>
 
       {/* Progressive detail */}
-      <Expandable title="Horizon breakdown (Now / 5yr / 10yr)">
+      <Expandable title="BTC horizon breakdown (Now / 5yr / 10yr)">
         {horizonTable.rows.map((row) => (
           <div key={row.key} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${c.borderSubtle}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
@@ -140,10 +151,10 @@ export const OverviewTab: React.FC<Props> = ({ vaultBal, horizon, data }) => {
       <Expandable title="Monte Carlo risk analysis">
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
           {[
-            { label: "Median BTC price", value: fmtUsdCompact(mc.p50), col: c.accent },
-            { label: "Upside (P90)", value: fmtUsdCompact(mc.p90), col: c.positive },
-            { label: "Downside (P10)", value: fmtUsdCompact(mc.p10), col: c.negative },
-            { label: "Max drawdown", value: `-${(mc.medianMaxDD * 100).toFixed(0)}%`, col: c.negative },
+            { label: "Median BTC price", value: fmtUsdCompact(mcBtc.p50), col: c.accent },
+            { label: "Upside (P90)", value: fmtUsdCompact(mcBtc.p90), col: c.positive },
+            { label: "Downside (P10)", value: fmtUsdCompact(mcBtc.p10), col: c.negative },
+            { label: "Max drawdown", value: `-${(mcBtc.medianMaxDD * 100).toFixed(0)}%`, col: c.negative },
           ].map(({ label, value, col }) => (
             <div key={label} style={{ padding: "6px 0" }}>
               <div style={{ fontSize: 9, color: c.mute, marginBottom: 2 }}>{label}</div>
@@ -152,7 +163,7 @@ export const OverviewTab: React.FC<Props> = ({ vaultBal, horizon, data }) => {
           ))}
         </div>
         <div style={{ fontSize: 10, color: c.mute, lineHeight: 1.5 }}>
-          {mc.nPaths.toLocaleString()} simulated paths · {(mc.pBelowEntry * 100).toFixed(0)}% end below today's price
+          {mcBtc.nPaths.toLocaleString()} simulated paths · {(mcBtc.pBelowEntry * 100).toFixed(0)}% end below today's price
         </div>
       </Expandable>
     </>

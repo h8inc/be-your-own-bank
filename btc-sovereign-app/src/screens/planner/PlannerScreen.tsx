@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { c, f } from "../../lib/theme";
 import { BTC_PRICE, EUR_RATE } from "../../lib/constants";
+import type { Holding } from "../../lib/constants";
 import { fmtCompact } from "../../lib/formatters";
 import { Card, Label, Badge } from "../../components/ui";
 import { usePlannerData } from "../../hooks/usePlannerData";
@@ -10,7 +11,7 @@ import { GrowTab } from "./tabs/GrowTab";
 import { TaxTab } from "./tabs/TaxTab";
 
 interface Props {
-  vaultBal: number;
+  holdings: Holding[];
   walletConnected: boolean;
   manualBtc: number;
   setManualBtc: (v: number) => void;
@@ -20,17 +21,21 @@ interface Props {
 type Tab = "overview" | "projections" | "grow" | "tax";
 
 export const PlannerScreen: React.FC<Props> = ({
-  vaultBal, walletConnected, manualBtc, setManualBtc, onConnect,
+  holdings, walletConnected, manualBtc, setManualBtc, onConnect,
 }) => {
   const [tab, setTab] = useState<Tab>("overview");
   const [horizon, setHorizon] = useState<5 | 10>(10);
   const [monthlyDca, setMonthlyDca] = useState(200);
   const [fiTarget, setFiTarget] = useState(3000);
 
+  // Extract BTC balance from holdings
+  const btcHolding = holdings.find(h => h.assetId === "BTC");
+  const vaultBal = btcHolding ? btcHolding.amount : 0;
+
   const data = usePlannerData({
-    vaultBal,
+    holdings,
     horizon,
-    monthlyDca,
+    monthlyDcaEur: monthlyDca,
     fiTarget,
     includeDcaInCorridor: tab === "grow",
   });
@@ -48,10 +53,10 @@ export const PlannerScreen: React.FC<Props> = ({
       <div style={{ marginBottom: 12, marginTop: 4 }}>
         <div style={{ width: 32, height: 2, background: c.accent, borderRadius: 1, marginBottom: 12 }} />
         <div style={{ fontSize: 18, fontWeight: 300, color: c.text, fontFamily: f.display, lineHeight: 1.3 }}>
-          Your Bitcoin plan.
+          Your wealth plan.
         </div>
         <div style={{ fontSize: 11, color: c.mute, marginTop: 4 }}>
-          See where you might be headed. Plan how to get there.
+          See where your portfolio might be headed. Plan how to get there.
         </div>
       </div>
 

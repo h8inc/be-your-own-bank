@@ -28,3 +28,13 @@ export function fmtPct(n: number) {
   const sign = n >= 0 ? "+" : "";
   return sign + n.toFixed(1) + "%";
 }
+
+export function fmtAsset(amount: number, symbol: string): string {
+  // For BTC-like assets, show 4 decimals
+  if (["BTC", "ETH"].includes(symbol)) {
+    const decimals = symbol === "BTC" ? 4 : 4;
+    return `${amount.toFixed(decimals)} ${symbol}`;
+  }
+  // For stablecoins and others, show commas and 2 decimals
+  return `${Math.round(amount).toLocaleString("en")} ${symbol}`;
+}

@@ -2,7 +2,11 @@
  * Power-law corridor model for BTC price projections.
  * Median price path: monthly log drift plExponent / (PL_REF_AGE + m)
  * Corridor σ compresses with BTC age: σ(m) = σ₀ × (t₀ / t)^β
+ *
+ * BTC-specific: power-law only applies to Bitcoin.
  */
+
+import { ASSETS } from "../lib/constants";
 
 /** BTC genesis: Jan 2009. Months since genesis to Mar 2026 */
 export const PL_REF_AGE = (2026 - 2009) * 12 + 2; // ~206 months
@@ -50,7 +54,7 @@ export interface CorridorOptions {
 }
 
 export function computeBagCorridorPoints({
-  startPriceUsd,
+  startPriceUsd = ASSETS.BTC.priceUsd,
   totalBtc,
   plExponent = PL_EXPONENT_DEFAULT,
   plSigma0 = PL_SIGMA0_DEFAULT,

@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { c, f } from "../../../lib/theme";
-import { BTC_PRICE, EUR_RATE } from "../../../lib/constants";
 import { fmtCompact, fmtUsdCompact } from "../../../lib/formatters";
 import { Card, Label, Row, Btn, Expandable, BottomSheet } from "../../../components/ui";
-import { LIFESTYLE_PRESETS, type LifestyleItem } from "../../../hooks/usePlannerData";
+import { LIFESTYLE_PRESETS } from "../../../hooks/usePlannerData";
 import type { usePlannerData } from "../../../hooks/usePlannerData";
 
 interface Props {
@@ -54,10 +53,10 @@ export const GrowTab: React.FC<Props> = ({
       {/* ── SECTION 1: DCA — Stack sats ── */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 13, color: c.text, fontWeight: 500, marginBottom: 4 }}>
-          Stack sats every month
+          Invest every month
         </div>
         <div style={{ fontSize: 11, color: c.mute, marginBottom: 12, lineHeight: 1.5 }}>
-          Dollar-cost averaging smooths out volatility. Set a monthly amount and see how your stack grows.
+          Dollar-cost averaging smooths out volatility. Set a monthly amount and see how your portfolio grows.
         </div>
 
         <Card s={{ marginBottom: 12 }}>
@@ -83,7 +82,7 @@ export const GrowTab: React.FC<Props> = ({
 
         {/* DCA growth chart */}
         <Card s={{ marginBottom: 12, padding: "16px 8px 8px" }}>
-          <Label s={{ marginBottom: 6, paddingLeft: 8 }}>Your stack over {horizon} years</Label>
+          <Label s={{ marginBottom: 6, paddingLeft: 8 }}>Your portfolio over {horizon} years</Label>
           <div style={{ width: "100%", height: 160, minWidth: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={dcaProjection.chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -94,8 +93,8 @@ export const GrowTab: React.FC<Props> = ({
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="year" tick={{ fontSize: 9, fill: c.mute }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 9, fill: c.mute }} tickFormatter={(v: number) => fmtCompact(v)} tickLine={false} axisLine={false} width={48} />
-                <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => fmtCompact(v)} />
+                <YAxis tick={{ fontSize: 9, fill: c.mute }} tickFormatter={(v) => fmtCompact(v as number)} tickLine={false} axisLine={false} width={48} />
+                <Tooltip contentStyle={chartTooltipStyle} formatter={(v) => fmtCompact(v as number)} />
                 <Area type="monotone" dataKey="p90" stroke={c.positive + "66"} fill="transparent" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Optimistic" />
                 <Area type="monotone" dataKey="p50" stroke={c.accent} fill="url(#dcaGrad)" strokeWidth={2} dot={false} name="Median" />
                 <Area type="monotone" dataKey="p10" stroke={c.negative + "66"} fill="transparent" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Conservative" />
@@ -145,7 +144,7 @@ export const GrowTab: React.FC<Props> = ({
           Financial freedom target
         </div>
         <div style={{ fontSize: 11, color: c.mute, marginBottom: 12, lineHeight: 1.5 }}>
-          How much BTC do you need to live off your stack? Set your monthly spending to see.
+          How much do you need to live off your portfolio? Set your monthly spending to see.
         </div>
 
         <Card s={{ marginBottom: 12 }}>
@@ -181,20 +180,21 @@ export const GrowTab: React.FC<Props> = ({
           </button>
         </Card>
 
-        {/* How much BTC do you need */}
+        {/* Portfolio scenarios for FI */}
         <Card s={{ marginBottom: 12 }}>
           <div style={{ fontSize: 10, color: c.mute, marginBottom: 8, lineHeight: 1.5 }}>
             To spend €{fiTarget.toLocaleString()}/mo indefinitely (4% withdrawal rate), you'd need:
           </div>
           {fiCalc.scenarios.map((s) => {
-            const have = vaultBal >= s.btcNeeded;
-            const pct = Math.min(100, (vaultBal / s.btcNeeded) * 100);
+            const portfolioNeeded = fiCalc.portfolioNeededUsd;
+            const have = s.value >= portfolioNeeded;
+            const pct = Math.min(100, (s.value / portfolioNeeded) * 100);
             return (
               <div key={s.label} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
                   <span style={{ fontSize: 12, color: c.text, fontWeight: 500 }}>{s.label}</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: have ? c.positive : c.text, fontFamily: f.mono }}>
-                    {s.btcNeeded.toFixed(2)} BTC
+                    {s.valueLabel}
                   </span>
                 </div>
                 {/* Progress bar */}
@@ -207,10 +207,10 @@ export const GrowTab: React.FC<Props> = ({
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 9, color: c.mute }}>
-                    if BTC reaches {s.priceLabel} in {horizon}yr
+                    {s.label} scenario in {horizon}yr
                   </span>
                   <span style={{ fontSize: 9, color: have ? c.positive : c.mute, fontWeight: have ? 600 : 400 }}>
-                    {have ? "✓ You're there" : `${pct.toFixed(0)}% of the way`}
+                    {have ? "✓ You're there" : `${pct.toFixed(0)}% of target`}
                   </span>
                 </div>
               </div>
@@ -219,18 +219,18 @@ export const GrowTab: React.FC<Props> = ({
         </Card>
 
         {/* Gap + DCA timeline */}
-        {vaultBal < fiCalc.scenarios[1].btcNeeded && (
+        {fiCalc.scenarios[1].shortfall > 0 && (
           <Card s={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: c.text, fontWeight: 500, marginBottom: 8 }}>Closing the gap</div>
             <div style={{ fontSize: 11, color: c.mute, lineHeight: 1.6 }}>
-              You need{" "}
+              At the likely scenario, your portfolio would be{" "}
               <span style={{ color: c.accent, fontWeight: 600 }}>
-                {(fiCalc.scenarios[1].btcNeeded - vaultBal).toFixed(2)} more BTC
+                {fmtUsdCompact(fiCalc.scenarios[1].shortfall)}
               </span>{" "}
-              at the likely scenario ({fiCalc.scenarios[1].priceLabel}/BTC).
+              short of your target.
               {monthlyDca > 0 && fiCalc.yearsToGoal != null ? (
                 <> At €{monthlyDca}/mo (current DCA), that's roughly{" "}
-                  <span style={{ color: c.accent, fontWeight: 600 }}>{fiCalc.yearsToGoal} years</span> of stacking at today's price.</>
+                  <span style={{ color: c.accent, fontWeight: 600 }}>{fiCalc.yearsToGoal} years</span> of stacking.</>
               ) : (
                 <> Start a DCA above to see how long it would take.</>
               )}
@@ -239,9 +239,9 @@ export const GrowTab: React.FC<Props> = ({
         )}
 
         <Card glow={c.accentSoft}>
-          <div style={{ fontSize: 11, color: c.accent, fontWeight: 600, marginBottom: 4 }}>The Bitcoin pension</div>
+          <div style={{ fontSize: 11, color: c.accent, fontWeight: 600, marginBottom: 4 }}>The crypto pension</div>
           <div style={{ fontSize: 11, color: c.mute, lineHeight: 1.6 }}>
-            Accumulate BTC. At financial independence, borrow against it for living expenses — never sell, never trigger capital gains. Repay from appreciation. Your stack stays intact.
+            Accumulate crypto. At financial independence, borrow against it for living expenses — never sell, never trigger capital gains. Repay from appreciation. Your portfolio stays intact.
           </div>
         </Card>
       </div>

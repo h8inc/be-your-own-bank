@@ -12,7 +12,7 @@ const icons = {
 export const NavBar: React.FC<{ active: string; go: (s: string) => void }> = ({ active, go }) => {
   const tabs: { id: string; label: string; icon: React.ReactNode }[] = [
     { id: "home", label: "Home", icon: icons.home },
-    { id: "lending", label: "Credit", icon: icons.earn },
+    { id: "credit", label: "Credit", icon: icons.earn },
     { id: "planner", label: "Plan", icon: icons.planner },
     { id: "card", label: "Card", icon: icons.card },
     { id: "settings", label: "Settings", icon: icons.settings },

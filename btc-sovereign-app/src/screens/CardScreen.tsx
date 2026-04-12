@@ -1,24 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import { c, f } from "../lib/theme";
 import { EUR_RATE } from "../lib/constants";
-import { Label, Num, Card, Btn, Badge } from "../components/ui";
+import type { Holding } from "../lib/constants";
+import { Label, Num, Card, Btn, Badge, Row } from "../components/ui";
 
 interface Props {
   hasCard: boolean;
   setHasCard: (v: boolean) => void;
   cardBal: number;
-  resetCard: () => void;
+  setCardBal: (n: number) => void;
+  holdings: Holding[];
   go: (s: string) => void;
 }
 
-export const CardScreen: React.FC<Props> = ({ hasCard, setHasCard, cardBal, resetCard, go }) => {
+export const CardScreen: React.FC<Props> = ({ hasCard, setHasCard, cardBal, setCardBal, holdings }) => {
+  const [topupAmount, setTopupAmount] = useState(500);
+  const [showTopupReview, setShowTopupReview] = useState(false);
+  const [unshielding, setUnshielding] = useState(false);
+
   if (!hasCard) {
     return (
       <div style={{ padding: "0 24px", flex: 1, overflowY: "auto", paddingBottom: 20 }}>
         <div style={{ marginBottom: 28, marginTop: 4 }}>
           <div style={{ width: 32, height: 2, background: c.accent, borderRadius: 1, marginBottom: 16 }} />
           <div style={{ fontSize: 22, fontWeight: 300, color: c.text, fontFamily: f.display, lineHeight: 1.3 }}>
-            Spend stablecoins.<br />Keep your Bitcoin.
+            Spend without<br />compromising privacy.
           </div>
         </div>
         <div style={{
@@ -36,10 +42,10 @@ export const CardScreen: React.FC<Props> = ({ hasCard, setHasCard, cardBal, rese
         <Card s={{ marginBottom: 12 }}>
           <Label s={{ marginBottom: 12 }}>How it works</Label>
           {[
-            ["1", "Borrow stablecoins against BTC", "Fixed-date contract"],
-            ["2", "Fund card", "One tap"],
-            ["3", "Tap to pay", "EUR/BGN conversion"],
-            ["4", "BTC stays locked", "Until you repay"],
+            ["1", "Fund from private Railgun", "Unshield 1 tap"],
+            ["2", "Top up card", "Instant settlement"],
+            ["3", "Tap to pay", "EUR/local currency"],
+            ["4", "Your assets stay private", "Until you unshield"],
           ].map(([n, t, sub]) => (
             <div key={n} style={{ display: "flex", gap: 12, marginBottom: 10 }}>
               <span style={{ fontSize: 12, color: c.accent, fontWeight: 600, fontFamily: f.mono, minWidth: 14 }}>{n}</span>
@@ -52,12 +58,50 @@ export const CardScreen: React.FC<Props> = ({ hasCard, setHasCard, cardBal, rese
         </Card>
         <Card glow={c.accentSoft} s={{ marginBottom: 20 }}>
           <div style={{ fontSize: 11, color: c.accent, fontWeight: 600, marginBottom: 4 }}>KYC required</div>
-          <div style={{ fontSize: 11, color: c.mute, lineHeight: 1.5 }}>Card partner verifies your identity. Your vault and BTC stay private.</div>
+          <div style={{ fontSize: 11, color: c.mute, lineHeight: 1.5 }}>Card partner verifies your identity. Your Railgun holdings stay shielded.</div>
         </Card>
         <Btn primary onClick={() => setHasCard(true)}>Get card</Btn>
       </div>
     );
   }
+
+  const TopupReview = () => {
+    // Find shielded USDC for display
+    void holdings.find(h => h.assetId === "USDC" && h.shielded);
+    return showTopupReview ? (
+      <Card s={{ marginBottom: 16, background: c.surfaceRaised }}>
+        <Label s={{ marginBottom: 10 }}>Confirm top-up</Label>
+        <Row label="Unshield from Railgun" value={`${topupAmount} USDC`} color={c.accent} accent />
+        <Row label="To card" value={`€${(topupAmount * EUR_RATE).toLocaleString("en", { maximumFractionDigits: 2 })}`} />
+        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+          {!unshielding ? (
+            <>
+              <Btn primary onClick={() => {
+                setUnshielding(true);
+                setTimeout(() => {
+                  setCardBal(cardBal + topupAmount);
+                  setShowTopupReview(false);
+                  setUnshielding(false);
+                  setTopupAmount(500);
+                }, 1500);
+              }} s={{ flex: 1 }}>Confirm</Btn>
+              <Btn onClick={() => setShowTopupReview(false)} s={{ flex: 1, border: `1px solid ${c.border}` }}>Cancel</Btn>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: "12px", flex: 1 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 16,
+                border: `2px solid ${c.border}`, borderTopColor: c.accent,
+                margin: "0 auto 8px",
+                animation: "spin 0.8s linear infinite",
+              }} />
+              <div style={{ fontSize: 11, color: c.text, fontWeight: 500 }}>Unshielding...</div>
+            </div>
+          )}
+        </div>
+      </Card>
+    ) : null;
+  };
 
   return (
     <div style={{ padding: "0 24px", flex: 1, overflowY: "auto", paddingBottom: 20 }}>
@@ -71,18 +115,35 @@ export const CardScreen: React.FC<Props> = ({ hasCard, setHasCard, cardBal, rese
         </div>
         <div style={{ width: 40, height: 2, background: c.accent, borderRadius: 1, marginTop: 14 }} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 20 }}>
-        <Btn compact onClick={() => go("lending")} s={{ width: "100%" }}>Top up</Btn>
-        <Btn compact ghost s={{ width: "100%", border: `1px solid ${c.border}` }}>Freeze</Btn>
-        <Btn compact ghost onClick={resetCard} s={{ width: "100%", border: `1px solid ${c.border}` }}>Reset</Btn>
-      </div>
-      <Label s={{ marginBottom: 8 }}>Recent</Label>
+
+      {/* Top-up section */}
+      <Card s={{ marginBottom: 16 }}>
+        <Label s={{ marginBottom: 10 }}>Top-up amount</Label>
+        <input type="range" min={100} max={5000} step={50}
+          value={topupAmount}
+          onChange={e => setTopupAmount(Number(e.target.value))}
+          style={{ width: "100%", accentColor: c.accent, marginBottom: 12, height: 2 }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <Num>{topupAmount} <span style={{ fontSize: 13, color: c.mute }}>USDC</span></Num>
+          <span style={{ fontSize: 12, color: c.mute, fontFamily: f.mono }}>≈ €{(topupAmount * EUR_RATE).toLocaleString("en", { maximumFractionDigits: 2 })}</span>
+        </div>
+      </Card>
+
+      {TopupReview()}
+
+      {!showTopupReview && (
+        <Btn primary onClick={() => setShowTopupReview(true)} s={{ marginBottom: 12 }}>
+          Top-up €{(topupAmount * EUR_RATE).toLocaleString("en", { maximumFractionDigits: 0 })}
+        </Btn>
+      )}
+
+      <Label s={{ marginBottom: 8 }}>Recent transactions</Label>
       {[
-        { name: "Lidl Plovdiv", amount: -42.30, date: "Today 14:23" },
-        { name: "Shell Trakia", amount: -85.00, date: "Yesterday 09:15" },
-        { name: "Netflix", amount: -15.99, date: "Mar 28" },
+        { name: "Lidl Bulgaria", amount: -42.30, date: "Today 14:23" },
+        { name: "Shell station", amount: -85.00, date: "Yesterday 09:15" },
+        { name: "Netflix subscription", amount: -15.99, date: "Mar 28" },
         { name: "Amazon.de", amount: -129.00, date: "Mar 26" },
-        { name: "Top-up from loan", amount: 500, date: "Mar 25" },
+        { name: "Top-up from Railgun", amount: 500, date: "Mar 25" },
       ].map((tx, i) => (
         <div key={i} style={{
           display: "flex", justifyContent: "space-between", alignItems: "center",
