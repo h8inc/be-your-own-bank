@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { c, f } from "../../lib/theme";
 import { BTC_PRICE, EUR_RATE } from "../../lib/constants";
 import type { Holding } from "../../lib/constants";
@@ -28,12 +28,22 @@ export const PlannerScreen: React.FC<Props> = ({
   const [monthlyDca, setMonthlyDca] = useState(200);
   const [fiTarget, setFiTarget] = useState(3000);
 
-  // Extract BTC balance from holdings
-  const btcHolding = holdings.find(h => h.assetId === "BTC");
+  // For disconnected users, run the planner from manual BTC input only.
+  const plannerHoldings = useMemo<Holding[]>(
+    () => (
+      walletConnected
+        ? holdings
+        : [{ assetId: "BTC", amount: manualBtc, shielded: false }]
+    ),
+    [walletConnected, holdings, manualBtc],
+  );
+
+  // Extract BTC balance from planner source holdings
+  const btcHolding = plannerHoldings.find(h => h.assetId === "BTC");
   const vaultBal = btcHolding ? btcHolding.amount : 0;
 
   const data = usePlannerData({
-    holdings,
+    holdings: plannerHoldings,
     horizon,
     monthlyDcaEur: monthlyDca,
     fiTarget,
@@ -96,6 +106,9 @@ export const PlannerScreen: React.FC<Props> = ({
               ≈ {fmtCompact(manualBtc * BTC_PRICE * EUR_RATE)} today
             </div>
           )}
+          <div style={{ fontSize: 10, color: c.mute, marginTop: 8, lineHeight: 1.4 }}>
+            Manual entry powers the preview. Connect wallet is optional for live balances.
+          </div>
           {/* Quick presets */}
           <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
             {[0.1, 0.5, 1, 2, 5].map((v) => (
@@ -120,7 +133,7 @@ export const PlannerScreen: React.FC<Props> = ({
               <rect x="3" y="6" width="8" height="6" rx="1" stroke={c.mute} strokeWidth="1.2" />
               <path d="M5 6V4.5a2 2 0 014 0V6" stroke={c.mute} strokeWidth="1.2" strokeLinecap="round" />
             </svg>
-            Connect wallet for live balances
+            Connect wallet for live balances (optional)
           </button>
         </Card>
       )}
