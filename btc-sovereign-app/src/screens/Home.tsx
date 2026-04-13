@@ -1,4 +1,5 @@
 import React from "react";
+import { ArrowDownLeft, ArrowUpRight, Shield, Landmark } from "lucide-react";
 import { c, f } from "../lib/theme";
 import { ASSETS, portfolioValueEur, portfolioValueUsd, EUR_RATE } from "../lib/constants";
 import type { Holding } from "../lib/constants";
@@ -62,7 +63,7 @@ export const HomeScreen: React.FC<Props> = ({ holdings, activeLoan, hasCard, go 
                     })} {asset.symbol}
                   </div>
                   <div style={{ fontSize: 10, color: c.mute, display: "flex", alignItems: "center", gap: 4 }}>
-                    {h.shielded && <span>🔒</span>}
+                    {h.shielded && <Shield size={10} color={c.mute} strokeWidth={1.5} />}
                     <span>{pctOfPortfolio}% of portfolio</span>
                   </div>
                 </div>
@@ -80,18 +81,18 @@ export const HomeScreen: React.FC<Props> = ({ holdings, activeLoan, hasCard, go 
       {/* Quick actions */}
       <Label s={{ marginBottom: 8 }}>Actions</Label>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 16 }}>
-        {[
-          { icon: "↙", label: "Deposit", s: "deposit" },
-          { icon: "↗", label: "Send", s: "home" },
-          { icon: "🔐", label: "Shield", s: "home" },
-          { icon: "₿", label: "Borrow", s: "lending" },
-        ].map(a => (
+        {([
+          { icon: ArrowDownLeft, label: "Deposit", s: "deposit" },
+          { icon: ArrowUpRight, label: "Send", s: "home" },
+          { icon: Shield, label: "Shield", s: "home" },
+          { icon: Landmark, label: "Borrow", s: "credit" },
+        ] as const).map(a => (
           <button key={a.label} onClick={() => go(a.s)} style={{
             background: c.surface, border: `1px solid ${c.border}`, borderRadius: 6,
             padding: "14px 0", cursor: "pointer", display: "flex", flexDirection: "column",
             alignItems: "center", gap: 5, transition: "border-color 0.2s",
           }}>
-            <span style={{ fontSize: 16 }}>{a.icon}</span>
+            <a.icon size={18} color={c.accent} strokeWidth={1.5} />
             <span style={{ fontSize: 9, color: c.mute, fontWeight: 500, letterSpacing: "0.05em", fontFamily: f.sans }}>{a.label.toUpperCase()}</span>
           </button>
         ))}
