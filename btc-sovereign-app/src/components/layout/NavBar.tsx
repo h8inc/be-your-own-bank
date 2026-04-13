@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { c, f } from "../../lib/theme";
 
 const icons = {
@@ -10,6 +10,15 @@ const icons = {
 };
 
 export const NavBar: React.FC<{ active: string; go: (s: string) => void }> = ({ active, go }) => {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 600);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 600px)");
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   const tabs: { id: string; label: string; icon: React.ReactNode }[] = [
     { id: "home", label: "Home", icon: icons.home },
     { id: "credit", label: "Credit", icon: icons.earn },
@@ -17,11 +26,22 @@ export const NavBar: React.FC<{ active: string; go: (s: string) => void }> = ({ 
     { id: "card", label: "Card", icon: icons.card },
     { id: "settings", label: "Settings", icon: icons.settings },
   ];
-  return (
+
+  const bar = (
     <div style={{
       display: "flex", justifyContent: "space-around",
       borderTop: `1px solid ${c.borderSubtle}`,
-      padding: "8px 0 20px", background: c.bg, flexShrink: 0,
+      padding: "8px 0 calc(12px + env(safe-area-inset-bottom))",
+      background: c.bg, flexShrink: 0,
+      ...(isMobile
+        ? {
+          position: "fixed" as const,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 50,
+        }
+        : {}),
     }}>
       {tabs.map(t => (
         <button key={t.id} onClick={() => go(t.id)} style={{
@@ -35,5 +55,12 @@ export const NavBar: React.FC<{ active: string; go: (s: string) => void }> = ({ 
         </button>
       ))}
     </div>
+  );
+
+  return (
+    <>
+      {isMobile && <div style={{ height: "72px" }} />}
+      {bar}
+    </>
   );
 };
